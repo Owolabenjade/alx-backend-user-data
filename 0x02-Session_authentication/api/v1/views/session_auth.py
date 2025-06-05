@@ -16,15 +16,15 @@ def session_login():
     # Get email and password from form data
     email = request.form.get('email')
     password = request.form.get('password')
-    
+
     # Validate email parameter
     if email is None or email == "":
         return jsonify({"error": "email missing"}), 400
-    
+
     # Validate password parameter
     if password is None or password == "":
         return jsonify({"error": "password missing"}), 400
-    
+
     # Search for user by email - handle potential exceptions
     try:
         users = User.search({"email": email})
@@ -33,37 +33,37 @@ def session_login():
     except Exception as e:
         # If search fails, treat as no users found
         users = []
-    
+
     # Check if user exists
     if not users or len(users) == 0:
         return jsonify({"error": "no user found for this email"}), 404
-    
+
     user = users[0]
-    
+
     # Validate password
     try:
         if not user.is_valid_password(password):
             return jsonify({"error": "wrong password"}), 401
     except Exception as e:
         return jsonify({"error": "wrong password"}), 401
-    
+
     # Import auth only when needed to avoid circular imports
     from api.v1.app import auth
-    
+
     # Create session ID for the user
     session_id = auth.create_session(user.id)
     if session_id is None:
         return jsonify({"error": "failed to create session"}), 500
-    
+
     # Create response with user data
     try:
         user_dict = user.to_json()
         response = make_response(jsonify(user_dict))
     except Exception as e:
         return jsonify({"error": "failed to serialize user"}), 500
-    
+
     # Set session cookie
     cookie_name = getenv('SESSION_NAME', '_my_session_id')
     response.set_cookie(cookie_name, session_id)
-    
+
     return response
