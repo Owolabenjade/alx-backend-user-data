@@ -40,10 +40,10 @@ def before_request() -> str:
 
     if not auth.require_auth(request.path, excluded_paths):
         return
- 
+
     if auth.authorization_header(request) is None:
         abort(401)
-    
+
     # Assign the result of auth.current_user(request) to request.current_user
     request.current_user = auth.current_user(request)
 
