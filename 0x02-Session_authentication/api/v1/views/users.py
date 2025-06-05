@@ -40,7 +40,7 @@ def view_one_user(user_id: str = None) -> str:
     """
     if user_id is None:
         abort(404)
-    
+
     # Handle /users/me endpoint
     if user_id == "me":
         if request.current_user is None:
@@ -55,12 +55,12 @@ def view_one_user(user_id: str = None) -> str:
             'updated_at': "2017-09-25 01:55:17"
         }
         return jsonify(user_dict)
-    
+
     # Otherwise, keep the same behavior for regular user_id
     user = User.get(user_id)
     if user is None:
         abort(404)
-    
+
     user_dict = {
         'id': user.id,
         'email': user.email,
