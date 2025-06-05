@@ -12,13 +12,6 @@ from os import getenv
 def session_login():
     """
     Handles session authentication login.
-    
-    This route processes POST requests to authenticate users and create
-    session cookies. It validates email and password, creates a session ID,
-    and sets the session cookie in the response.
-    
-    Returns:
-        Response: JSON response with user data and session cookie, or error message
     """
     # Get email and password from form data
     email = request.form.get('email')
@@ -32,8 +25,14 @@ def session_login():
     if password is None or password == "":
         return jsonify({"error": "password missing"}), 400
     
-    # Search for user by email
-    users = User.search({"email": email})
+    # Search for user by email - handle potential exceptions
+    try:
+        users = User.search({"email": email})
+        if users is None:
+            users = []
+    except Exception as e:
+        # If search fails, treat as no users found
+        users = []
     
     # Check if user exists
     if not users or len(users) == 0:
@@ -42,7 +41,10 @@ def session_login():
     user = users[0]
     
     # Validate password
-    if not user.is_valid_password(password):
+    try:
+        if not user.is_valid_password(password):
+            return jsonify({"error": "wrong password"}), 401
+    except Exception as e:
         return jsonify({"error": "wrong password"}), 401
     
     # Import auth only when needed to avoid circular imports
@@ -50,12 +52,18 @@ def session_login():
     
     # Create session ID for the user
     session_id = auth.create_session(user.id)
+    if session_id is None:
+        return jsonify({"error": "failed to create session"}), 500
     
     # Create response with user data
-    response = make_response(jsonify(user.to_json()))
+    try:
+        user_dict = user.to_json()
+        response = make_response(jsonify(user_dict))
+    except Exception as e:
+        return jsonify({"error": "failed to serialize user"}), 500
     
     # Set session cookie
-    cookie_name = getenv('SESSION_NAME')
+    cookie_name = getenv('SESSION_NAME', '_my_session_id')
     response.set_cookie(cookie_name, session_id)
     
     return response
