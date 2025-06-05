@@ -3,6 +3,7 @@
 Session authentication module for the API
 """
 from api.v1.auth.auth import Auth
+from models.user import User
 import uuid
 
 
@@ -51,13 +52,13 @@ class SessionAuth(Auth):
             session_id (str): The session ID to look up
 
         Returns:
-            str: The user ID associated with the session ID,
-            or None if not found
+            str: The user ID associated with the
+            session ID, or None if not found
 
-        The method validates the session_id parameter
-        and uses the get() method
-        to safely retrieve the user_id from the
-        user_id_by_session_id dictionary.
+        The method validates the session_id
+        parameter and uses the get() method
+        to safely retrieve the user_id from
+        the user_id_by_session_id dictionary.
         Returns None if session_id is invalid
         or not found in the dictionary.
         """
@@ -69,3 +70,33 @@ class SessionAuth(Auth):
 
         # Use .get() to safely access the dictionary
         return self.user_id_by_session_id.get(session_id)
+
+    def current_user(self, request=None):
+        """
+        Returns a User instance based on a cookie value.
+
+        Args:
+            request: Flask request object
+
+        Returns:
+            User: User instance if found, None otherwise
+
+        This method overloads the current_user method from Auth class.
+        It uses session_cookie() to extract the session ID from the request
+        cookie, then uses user_id_for_session_id() to get the user ID,
+        and finally retrieves the User instance from the database.
+        """
+        # Get the session ID from the cookie
+        session_id = self.session_cookie(request)
+
+        if session_id is None:
+            return None
+
+        # Get the user ID based on the session ID
+        user_id = self.user_id_for_session_id(session_id)
+
+        if user_id is None:
+            return None
+
+        # Retrieve and return the User instance from the database
+        return User.get(user_id)
