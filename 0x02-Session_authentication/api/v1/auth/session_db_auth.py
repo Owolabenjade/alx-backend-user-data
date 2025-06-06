@@ -2,7 +2,11 @@
 """
 UserSession module for database-backed session storage
 """
-from models.base import Base
+try:
+    from models.base import Base
+except ImportError:
+    # Fallback if Base import fails
+    Base = object
 
 
 class UserSession(Base):
