@@ -52,14 +52,13 @@ class SessionAuth(Auth):
             session_id (str): The session ID to look up
 
         Returns:
-            str: The user ID associated with the session ID,
-            or None if not found
+            str: The user ID associated with the
+            session ID, or None if not found
 
         The method validates the session_id parameter
-        and uses the get() method to safely retrieve the
-        user_id from the user_id_by_session_id dictionary.
-        Returns None if session_id is invalid or
-        not found in the dictionary.
+        and uses the get() method to safely retrieve
+        the user_id from the user_id_by_session_id dictionary.
+        Returns None if session_id is invalid or not found in the dictionary.
         """
         if session_id is None:
             return None
@@ -105,3 +104,41 @@ class SessionAuth(Auth):
         except Exception:
             # Return None if any exception occurs during user retrieval
             return None
+
+    def destroy_session(self, request=None):
+        """
+        Deletes the user session / logout.
+
+        Args:
+            request: Flask request object
+
+        Returns:
+            bool: True if session was successfully destroyed, False otherwise
+
+        This method handles user logout by removing the session ID from the
+        user_id_by_session_id dictionary. It validates the request, extracts
+        the session ID from the cookie, verifies it exists in the session
+        dictionary, and then removes it.
+        """
+        # Check if request is None
+        if request is None:
+            return False
+
+        # Get the session ID from the cookie
+        session_id = self.session_cookie(request)
+
+        # Check if session ID cookie exists
+        if session_id is None:
+            return False
+
+        # Check if the session ID is linked to any User ID
+        user_id = self.user_id_for_session_id(session_id)
+
+        # If session ID is not linked to any user, return False
+        if user_id is None:
+            return False
+
+        # Delete the session ID from the dictionary
+        del self.user_id_by_session_id[session_id]
+
+        return True

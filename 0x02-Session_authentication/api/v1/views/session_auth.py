@@ -2,7 +2,7 @@
 """
 Session authentication views for the API
 """
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, abort
 from api.v1.views import app_views
 from models.user import User
 from os import getenv
@@ -12,6 +12,14 @@ from os import getenv
 def session_login():
     """
     Handles session authentication login.
+
+    This route processes POST requests to authenticate users and create
+    session cookies. It validates email and password, creates a session ID,
+    and sets the session cookie in the response.
+
+    Returns:
+        Response: JSON response with user data and session cookie, or error
+                 message
     """
     # Get email and password from form data
     email = request.form.get('email')
@@ -67,3 +75,29 @@ def session_login():
     response.set_cookie(cookie_name, session_id)
 
     return response
+
+
+@app_views.route('/auth_session/logout', methods=['DELETE'],
+                 strict_slashes=False)
+def session_logout():
+    """
+    Handles session authentication logout.
+
+    This route processes DELETE requests to destroy user sessions and logout.
+    It validates the session cookie, destroys the session, and returns an
+    empty JSON response on success.
+
+    Returns:
+        Response: Empty JSON dictionary on success, or 404 if session
+                 destruction fails
+    """
+    # Import auth only when needed to avoid circular imports
+    from api.v1.app import auth
+
+    # Attempt to destroy the session
+    if not auth.destroy_session(request):
+        # If destroy_session returns False, abort with 404
+        abort(404)
+
+    # Return empty JSON dictionary with status code 200
+    return jsonify({}), 200
