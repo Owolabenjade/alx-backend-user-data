@@ -13,94 +13,79 @@ app = Flask(__name__)
 app.register_blueprint(app_views)
 CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
-
+# Initialize auth variable
 auth = None
+
+# Determine authentication type based on AUTH_TYPE environment variable
 auth_type = getenv('AUTH_TYPE')
 
-if auth_type == 'auth':
-    from api.v1.auth.auth import Auth
-    auth = Auth()
-elif auth_type == 'basic_auth':
+if auth_type == 'basic_auth':
     from api.v1.auth.basic_auth import BasicAuth
     auth = BasicAuth()
 elif auth_type == 'session_auth':
     from api.v1.auth.session_auth import SessionAuth
     auth = SessionAuth()
+elif auth_type == 'session_exp_auth':
+    from api.v1.auth.session_exp_auth import SessionExpAuth
+    auth = SessionExpAuth()
+else:
+    from api.v1.auth.auth import Auth
+    auth = Auth()
 
 
 @app.before_request
 def before_request():
     """
-    Method that handles request filtering before processing.
+    Filter requests before they reach the route handlers.
 
-    This method is executed before each request to validate authentication
-    requirements. It checks if the requested path requires authentication
+    This method runs before each request to handle authentication.
+    It checks if authentication is required for the requested path
     and validates the user's credentials accordingly.
     """
     if auth is None:
         return
 
+    # List of paths that don't require authentication
     excluded_paths = [
         '/api/v1/status/',
         '/api/v1/unauthorized/',
         '/api/v1/forbidden/',
-        '/api/v1/auth_session/login/'
+        '/api/v1/auth_session/login/',
+        '/api/v1/auth_session/logout/'
     ]
 
+    # Check if the current path requires authentication
     if not auth.require_auth(request.path, excluded_paths):
         return
 
-    # For session authentication, check both
-    # authorization header and session cookie
-    auth_header = auth.authorization_header(request)
-    session_cookie = auth.session_cookie(request)
-
-    if auth_header is None and session_cookie is None:
+    # Check if authorization header or session cookie is present
+    if (auth.authorization_header(request) is None and
+            auth.session_cookie(request) is None):
         abort(401)
 
+    # Check if current user can be determined
     if auth.current_user(request) is None:
         abort(403)
+
+    # Store current user in request for use in route handlers
+    request.current_user = auth.current_user(request)
 
 
 @app.errorhandler(404)
 def not_found(error) -> str:
-    """
-    Not found handler
-
-    Args:
-        error: The 404 error object
-
-    Returns:
-        str: JSON response with error message
-    """
+    """ Not found handler """
     return jsonify({"error": "Not found"}), 404
 
 
 @app.errorhandler(401)
 def unauthorized(error) -> str:
-    """
-    Unauthorized handler
-
-    Args:
-        error: The 401 error object
-
-    Returns:
-        str: JSON response with error message
-    """
+    """ Unauthorized handler """
     return jsonify({"error": "Unauthorized"}), 401
 
 
 @app.errorhandler(403)
 def forbidden(error) -> str:
-    """
-    Forbidden handler
-
-    Args:
-        error: The 403 error object
-
-    Returns:
-        str: JSON response with error message
-    """
+    """ Forbidden handler """
     return jsonify({"error": "Forbidden"}), 403
 
 
