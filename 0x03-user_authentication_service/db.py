@@ -31,7 +31,7 @@ class DB:
     def _session(self) -> Session:
         """
         Memoized session object.
-        
+
         Returns:
             Session: SQLAlchemy session object
         """
@@ -43,11 +43,11 @@ class DB:
     def add_user(self, email: str, hashed_password: str) -> User:
         """
         Add a new user to the database.
-        
+
         Args:
             email (str): User's email address
             hashed_password (str): User's hashed password
-            
+
         Returns:
             User: The created user object
         """
@@ -59,13 +59,13 @@ class DB:
     def find_user_by(self, **kwargs: Any) -> User:
         """
         Find a user by arbitrary keyword arguments.
-        
+
         Args:
             **kwargs: Arbitrary keyword arguments to filter by
-            
+
         Returns:
             User: The first user found matching the criteria
-            
+
         Raises:
             NoResultFound: When no user is found
             InvalidRequestError: When invalid query arguments are passed
@@ -75,7 +75,7 @@ class DB:
             for key in kwargs.keys():
                 if not hasattr(User, key):
                     raise InvalidRequestError(f"Invalid attribute: {key}")
-            
+
             user = self._session.query(User).filter_by(**kwargs).first()
             if user is None:
                 raise NoResultFound("No user found with the given criteria")
@@ -86,19 +86,20 @@ class DB:
     def update_user(self, user_id: int, **kwargs: Any) -> None:
         """
         Update a user's attributes.
-        
+
         Args:
             user_id (int): The user's ID
-            **kwargs: Arbitrary keyword arguments representing attributes to update
-            
+            **kwargs: Arbitrary keyword arguments
+            representing attributes to update
+
         Raises:
             ValueError: When an invalid attribute is passed
         """
         user = self.find_user_by(id=user_id)
-        
+
         for key, value in kwargs.items():
             if not hasattr(User, key):
                 raise ValueError(f"Invalid attribute: {key}")
             setattr(user, key, value)
-        
+
         self._session.commit()
